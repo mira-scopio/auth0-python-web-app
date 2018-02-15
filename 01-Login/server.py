@@ -4,6 +4,7 @@ from functools import wraps
 import json
 from os import environ as env
 
+import flask
 from dotenv import load_dotenv, find_dotenv
 from flask import Flask
 from flask import jsonify
@@ -95,7 +96,8 @@ def callback_handling():
                          'description': request.args['error_description']}, 401)
 
     url = 'https://' + AUTH0_DOMAIN + '/userinfo'
-    headers = {'authorization': 'Bearer ' + resp['access_token']}
+    access_token = resp['access_token']
+    headers = {'authorization': 'Bearer ' + access_token}
     resp = requests.get(url, headers=headers)
     userinfo = resp.json()
 
@@ -107,7 +109,9 @@ def callback_handling():
         'picture': userinfo['picture']
     }
 
-    return redirect('/dashboard')
+    response = flask.make_response(redirect('/dashboard'))
+    response.set_cookie('authorization', 'Bearer ' + access_token)
+    return response
 
 
 @APP.route('/login')
@@ -131,4 +135,4 @@ def dashboard():
 
 
 if __name__ == "__main__":
-    APP.run(host='0.0.0.0', port=env.get('PORT', 3000))
+    APP.run(host='0.0.0.0', port=env.get('PORT', 4000))
