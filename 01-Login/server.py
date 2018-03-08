@@ -3,23 +3,21 @@
 import json
 from functools import wraps
 from os import environ as env
-from six.moves.urllib.request import urlopen
-from flask_cors import cross_origin
+
 import constants
 import flask
 import requests
 from dotenv import load_dotenv, find_dotenv
 from flask import Flask
+from flask import _request_ctx_stack
 from flask import jsonify
 from flask import redirect
 from flask import render_template
 from flask import request
-from flask import session
 from flask import url_for
-from flask import _request_ctx_stack
-from jose import jwt
-
+from flask_cors import cross_origin
 from flask_oauthlib.client import OAuth
+from jose import jwt
 from six.moves.urllib.parse import urlencode
 
 ENV_FILE = find_dotenv()
@@ -81,7 +79,6 @@ def requires_auth(f):
         token = get_token_auth_header()
         response = requests.get("https://" + AUTH0_DOMAIN + "/.well-known/jwks.json")
         jwks = response.json()
-        # jwks = json.loads(jsonurl.read())
         unverified_header = jwt.get_unverified_header(token)
         rsa_key = {}
         for key in jwks["keys"]:
@@ -175,6 +172,11 @@ def home():
     return render_template('home.html')
 
 
+@APP.route('/login')
+def login():
+    return auth0.authorize(callback=AUTH0_CALLBACK_URL)
+
+
 @APP.route('/callback')
 def callback_handling():
     resp = auth0.authorized_response()
@@ -196,14 +198,23 @@ def callback_handling():
     #     'picture': userinfo['picture']
     # }
 
-    response = flask.make_response(redirect('/api/public'))
+    response = flask.make_response(redirect('/dashboard'))
+    # can also return token in body and client is responsible to store in local storage
     response.set_cookie('authorization', 'Bearer ' + access_token)
     return response
 
 
-@APP.route('/login')
-def login():
-    return auth0.authorize(callback=AUTH0_CALLBACK_URL)
+@APP.route('/set')
+def set_test2():
+    response = flask.make_response(redirect('/test2'))
+    response.set_cookie('authorization', 'Bearer ' + 'asd')
+    return response
+
+
+@APP.route('/test2')
+def set_test():
+    response = flask.make_response('hello')
+    return response
 
 
 @APP.route('/logout')
@@ -253,4 +264,4 @@ def dashboard():
 
 
 if __name__ == "__main__":
-    APP.run(host='0.0.0.0', port=env.get('PORT', 4000))
+    APP.run(host='0.0.0.0', port=env.get('PORT', 5000))
